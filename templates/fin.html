@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Webmap with Drawing Tools</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+  <style>
+    #map {
+      width: 100%;
+      height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+
+  <script>
+    // Initialize the map and set its view
+    var map = L.map('map').setView([18.516726, 73.856255], 13);
+
+    // Add a tile layer
+    L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+      maxZoom: 20,
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+    }).addTo(map);
+
+    // Feature Group to store editable layers
+    var drawnItems = new L.FeatureGroup();
+    map.addLayer(drawnItems);
+
+    // Initialize the draw control
+    var drawControl = new L.Control.Draw({
+      edit: {
+        featureGroup: drawnItems
+      },
+      draw: {
+        polygon: true,
+        rectangle: true,
+      }
+    });
+    map.addControl(drawControl);
+
+    // Event listener for when a new layer is created
+    map.on(L.Draw.Event.CREATED, function (event) {
+      var layer = event.layer;
+      drawnItems.addLayer(layer);
+
+      // If a polygon is created, get the NDVI value
+      if (event.layerType === 'polygon') {
+        var polygonCoords = layer.getLatLngs()[0];
+
+        // Call your external API to get NDVI
+        getNdviValue(polygonCoords).then(function(ndviValue) {
+          // Display the NDVI value in a popup
+          layer.bindPopup('NDVI Value: ' + ndviValue.toFixed(2)).openPopup();
+        });
+      }
+    });
+
+    // Example function to get NDVI from an external API
+    function getNdviValue(coords) {
+      // Convert coordinates to the format expected by your API
+      var polygonString = coords.map(function(coord) {
+        return coord.lat + ',' + coord.lng;
+      }).join(';');
+
+      // Placeholder: Replace this with an actual API call
+      return fetch('https://example-ndvi-api.com/getNDVI?polygon=' + polygonString)
+        .then(response => response.json())
+        .then(data => data.ndvi); // Assuming the API returns an NDVI value in this format
+    }
+  </script>
+</body>
+</html>
